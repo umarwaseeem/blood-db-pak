@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Key, AlertCircle } from 'lucide-react';
+import { Key, AlertCircle, Loader2 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
-import { storage } from '../utils/storage';
+import { getDonorByCode } from '../services/donorService';
+import { getRequestByCode } from '../services/requestService';
 import { getTranslation } from '../utils/translations';
 import LanguageToggle from './LanguageToggle';
 
@@ -13,9 +14,10 @@ export default function AccessCodeLogin({ onBack }: AccessCodeLoginProps) {
   const { language, setCurrentUser } = useApp();
   const [accessCode, setAccessCode] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const t = (key: Parameters<typeof getTranslation>[1]) => getTranslation(language, key);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -26,19 +28,26 @@ export default function AccessCodeLogin({ onBack }: AccessCodeLoginProps) {
       return;
     }
 
-    const donor = storage.getDonorByCode(code);
-    if (donor) {
-      setCurrentUser({ type: 'donor', data: donor });
-      return;
-    }
+    setIsLoading(true);
+    try {
+      const donor = await getDonorByCode(code);
+      if (donor) {
+        setCurrentUser({ type: 'donor', data: donor });
+        return;
+      }
 
-    const request = storage.getRequestByCode(code);
-    if (request) {
-      setCurrentUser({ type: 'request', data: request });
-      return;
-    }
+      const request = await getRequestByCode(code);
+      if (request) {
+        setCurrentUser({ type: 'request', data: request });
+        return;
+      }
 
-    setError(t('invalidCode'));
+      setError(t('invalidCode'));
+    } catch (err) {
+      setError('Failed to login. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatAccessCode = (value: string) => {
@@ -87,9 +96,8 @@ export default function AccessCodeLogin({ onBack }: AccessCodeLoginProps) {
                   value={accessCode}
                   onChange={handleChange}
                   maxLength={9}
-                  className={`w-full px-4 py-4 text-lg text-center font-mono border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                    error ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-4 py-4 text-lg text-center font-mono border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${error ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder={t('enterCodePlaceholder')}
                 />
                 {error && (

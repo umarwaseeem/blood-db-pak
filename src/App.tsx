@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from './contexts/AppContext';
+import { useDeepLink } from './hooks/useDeepLink';
 import LandingScreen from './components/LandingScreen';
 import AccessCodeLogin from './components/AccessCodeLogin';
 import UserDashboard from './components/UserDashboard';
@@ -16,16 +17,34 @@ type NavItem = 'home' | 'donors' | 'requests';
 function App() {
   const { currentUser, setCurrentUser } = useApp();
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
+  const { targetType, targetId, isDeepLink, clearTarget } = useDeepLink();
+
+  // Handle deep link navigation on mount
+  useEffect(() => {
+    if (isDeepLink && targetType && targetId) {
+      if (targetType === 'donor') {
+        setCurrentScreen('donorList');
+      } else if (targetType === 'request') {
+        setCurrentScreen('requestList');
+      }
+    }
+  }, [isDeepLink, targetType, targetId]);
 
   useEffect(() => {
     if (currentUser) {
-      setCurrentScreen('dashboard');
+      // Don't redirect to dashboard if we're viewing a deep link
+      if (!isDeepLink) {
+        setCurrentScreen('dashboard');
+      }
     } else {
       if (currentScreen === 'dashboard' || currentScreen === 'donorEdit') {
-        setCurrentScreen('landing');
+        // Don't redirect to landing if we're viewing a deep link
+        if (!isDeepLink) {
+          setCurrentScreen('landing');
+        }
       }
     }
-  }, [currentUser]);
+  }, [currentUser, isDeepLink]);
 
   const handleDonorSelect = () => {
     setCurrentScreen('donorForm');
@@ -109,6 +128,21 @@ function App() {
     return 'home';
   };
 
+  // Get target ID for the current screen (only if it matches the deep link type)
+  const getDonorTargetId = () => {
+    if (isDeepLink && targetType === 'donor' && currentScreen === 'donorList') {
+      return targetId;
+    }
+    return null;
+  };
+
+  const getRequestTargetId = () => {
+    if (isDeepLink && targetType === 'request' && currentScreen === 'requestList') {
+      return targetId;
+    }
+    return null;
+  };
+
   const showBottomNav = currentScreen !== 'landing' && currentScreen !== 'accessCodeLogin' && currentScreen !== 'donorForm' && currentScreen !== 'donorEdit' && currentScreen !== 'requestForm';
 
   return (
@@ -144,11 +178,21 @@ function App() {
         />
       )}
 
-      {currentScreen === 'donorList' && <DonorList />}
+      {currentScreen === 'donorList' && (
+        <DonorList
+          targetId={getDonorTargetId()}
+          onTargetScrolled={clearTarget}
+        />
+      )}
 
       {currentScreen === 'requestForm' && <RequestForm onSuccess={handleRequestSuccess} onBack={handleRequestFormBack} />}
 
-      {currentScreen === 'requestList' && <RequestList />}
+      {currentScreen === 'requestList' && (
+        <RequestList
+          targetId={getRequestTargetId()}
+          onTargetScrolled={clearTarget}
+        />
+      )}
 
       {showBottomNav && (
         <BottomNav active={getActiveNavItem()} onNavigate={handleNavigation} />

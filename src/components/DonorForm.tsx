@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
-import { Camera, User, Phone, MapPin, FileText, Check, Copy, ArrowLeft } from 'lucide-react';
+import { Camera, User, Phone, MapPin, FileText, Check, Copy, ArrowLeft, Loader2 } from 'lucide-react';
 import { Donor, BloodGroup } from '../types';
-import { storage } from '../utils/storage';
+import { useCreateDonor } from '../hooks/useDonors';
 import { useApp } from '../contexts/AppContext';
 import { getTranslation } from '../utils/translations';
 import { generateAccessCode } from '../utils/helpers';
@@ -16,6 +16,7 @@ const bloodGroups: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', '
 
 export default function DonorForm({ onSuccess, onBack }: DonorFormProps) {
   const { language } = useApp();
+  const createDonorMutation = useCreateDonor();
   const [profilePicture, setProfilePicture] = useState<string>('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -52,31 +53,33 @@ export default function DonorForm({ onSuccess, onBack }: DonorFormProps) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validate()) return;
 
     const accessCode = generateAccessCode();
-    const donor: Donor = {
-      id: Date.now().toString(),
+    const donorData = {
       accessCode,
-      profilePicture,
+      profilePicture: profilePicture || undefined,
       fullName: fullName.trim(),
       phoneNumber: phoneNumber.trim(),
       bloodGroup,
       city: city.trim(),
-      notes: notes.trim(),
-      createdAt: new Date().toISOString(),
+      notes: notes.trim() || undefined,
     };
 
-    storage.saveDonor(donor);
-    setGeneratedCode(accessCode);
-    setShowSuccess(true);
+    try {
+      const donor = await createDonorMutation.mutateAsync(donorData);
+      setGeneratedCode(accessCode);
+      setShowSuccess(true);
 
-    setTimeout(() => {
-      onSuccess(donor);
-    }, 5000);
+      setTimeout(() => {
+        onSuccess(donor);
+      }, 5000);
+    } catch (error) {
+      setErrors({ submit: 'Failed to register. Please try again.' });
+    }
   };
 
   const copyCode = () => {
@@ -175,9 +178,8 @@ export default function DonorForm({ onSuccess, onBack }: DonorFormProps) {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                errors.fullName ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${errors.fullName ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder={t('enterFullName')}
               dir={language === 'ur' ? 'rtl' : 'ltr'}
             />
@@ -195,9 +197,8 @@ export default function DonorForm({ onSuccess, onBack }: DonorFormProps) {
               type="tel"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder={t('enterPhone')}
             />
           </div>
@@ -231,9 +232,8 @@ export default function DonorForm({ onSuccess, onBack }: DonorFormProps) {
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                errors.city ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${errors.city ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder={t('enterCity')}
               dir={language === 'ur' ? 'rtl' : 'ltr'}
             />

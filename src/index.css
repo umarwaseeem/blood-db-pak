@@ -34,4 +34,14 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* Deep link highlight animation */
+  @keyframes highlight-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.4); }
+  }
+
+  .highlight-target {
+    animation: highlight-pulse 0.8s ease-in-out 3;
+  }
 }

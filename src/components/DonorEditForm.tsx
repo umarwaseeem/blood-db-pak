@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Camera, User, Phone, MapPin, FileText, Check, ArrowLeft } from 'lucide-react';
 import { Donor, BloodGroup } from '../types';
-import { storage } from '../utils/storage';
+import { useUpdateDonor } from '../hooks/useDonors';
 import { useApp } from '../contexts/AppContext';
 import { getTranslation } from '../utils/translations';
 import LanguageToggle from './LanguageToggle';
@@ -16,6 +16,7 @@ const bloodGroups: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', '
 
 export default function DonorEditForm({ donor, onSuccess, onCancel }: DonorEditFormProps) {
   const { language } = useApp();
+  const updateDonorMutation = useUpdateDonor();
   const [profilePicture, setProfilePicture] = useState<string>(donor.profilePicture || '');
   const [fullName, setFullName] = useState(donor.fullName);
   const [phoneNumber, setPhoneNumber] = useState(donor.phoneNumber);
@@ -50,27 +51,33 @@ export default function DonorEditForm({ donor, onSuccess, onCancel }: DonorEditF
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validate()) return;
 
-    const updatedDonor: Donor = {
-      ...donor,
-      profilePicture,
+    const updates = {
+      profilePicture: profilePicture || undefined,
       fullName: fullName.trim(),
       phoneNumber: phoneNumber.trim(),
       bloodGroup,
       city: city.trim(),
-      notes: notes.trim(),
+      notes: notes.trim() || undefined,
     };
 
-    storage.updateDonor(donor.accessCode, updatedDonor);
-    setShowSuccess(true);
+    try {
+      const updatedDonor = await updateDonorMutation.mutateAsync({
+        accessCode: donor.accessCode,
+        updates,
+      });
+      setShowSuccess(true);
 
-    setTimeout(() => {
-      onSuccess(updatedDonor);
-    }, 1500);
+      setTimeout(() => {
+        onSuccess(updatedDonor);
+      }, 1500);
+    } catch (error) {
+      setErrors({ submit: 'Failed to update profile. Please try again.' });
+    }
   };
 
   if (showSuccess) {
@@ -147,9 +154,8 @@ export default function DonorEditForm({ donor, onSuccess, onCancel }: DonorEditF
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                errors.fullName ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${errors.fullName ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder={t('enterFullName')}
               dir={language === 'ur' ? 'rtl' : 'ltr'}
             />
@@ -167,9 +173,8 @@ export default function DonorEditForm({ donor, onSuccess, onCancel }: DonorEditF
               type="tel"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder={t('enterPhone')}
             />
           </div>
@@ -203,9 +208,8 @@ export default function DonorEditForm({ donor, onSuccess, onCancel }: DonorEditF
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                errors.city ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${errors.city ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder={t('enterCity')}
               dir={language === 'ur' ? 'rtl' : 'ltr'}
             />

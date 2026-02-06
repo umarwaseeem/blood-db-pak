@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Droplets, User, Phone, MapPin, FileText, AlertCircle, Check, Copy, ArrowLeft } from 'lucide-react';
 import { BloodRequest, BloodGroup, UrgencyLevel } from '../types';
-import { storage } from '../utils/storage';
+import { useCreateRequest } from '../hooks/useRequests';
 import { useApp } from '../contexts/AppContext';
 import { getTranslation } from '../utils/translations';
 import { generateAccessCode } from '../utils/helpers';
@@ -23,6 +23,7 @@ const urgencyColors = {
 
 export default function RequestForm({ onSuccess, onBack }: RequestFormProps) {
   const { language, currentUser } = useApp();
+  const createRequestMutation = useCreateRequest();
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>('O+');
   const [patientName, setPatientName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
@@ -46,32 +47,34 @@ export default function RequestForm({ onSuccess, onBack }: RequestFormProps) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validate()) return;
 
     const accessCode = currentUser ? currentUser.data.accessCode : generateAccessCode();
-    const request: BloodRequest = {
-      id: Date.now().toString(),
+    const requestData = {
       accessCode,
       bloodGroup,
-      patientName: patientName.trim(),
+      patientName: patientName.trim() || undefined,
       contactNumber: contactNumber.trim(),
       location: location.trim(),
       urgency,
-      notes: notes.trim(),
-      status: 'active',
-      createdAt: new Date().toISOString(),
+      notes: notes.trim() || undefined,
+      status: 'active' as const,
     };
 
-    storage.saveRequest(request);
-    setGeneratedCode(accessCode);
-    setShowSuccess(true);
+    try {
+      const request = await createRequestMutation.mutateAsync(requestData);
+      setGeneratedCode(accessCode);
+      setShowSuccess(true);
 
-    setTimeout(() => {
-      onSuccess(request);
-    }, 5000);
+      setTimeout(() => {
+        onSuccess(request);
+      }, 5000);
+    } catch (error) {
+      setErrors({ submit: 'Failed to create request. Please try again.' });
+    }
   };
 
   const copyCode = () => {
@@ -178,9 +181,8 @@ export default function RequestForm({ onSuccess, onBack }: RequestFormProps) {
               type="tel"
               value={contactNumber}
               onChange={(e) => setContactNumber(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                errors.contactNumber ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${errors.contactNumber ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder={t('enterPhone')}
             />
           </div>
@@ -199,9 +201,8 @@ export default function RequestForm({ onSuccess, onBack }: RequestFormProps) {
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                errors.location ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full pl-12 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 ${errors.location ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder={t('hospitalAddress')}
               dir={language === 'ur' ? 'rtl' : 'ltr'}
             />
@@ -219,11 +220,10 @@ export default function RequestForm({ onSuccess, onBack }: RequestFormProps) {
                 key={level}
                 type="button"
                 onClick={() => setUrgency(level)}
-                className={`py-4 px-3 rounded-xl font-bold text-white transition active:scale-95 ${
-                  urgency === level
+                className={`py-4 px-3 rounded-xl font-bold text-white transition active:scale-95 ${urgency === level
                     ? urgencyColors[level] + ' ring-4 ring-offset-2 ring-gray-400'
                     : urgencyColors[level] + ' opacity-50'
-                }`}
+                  }`}
               >
                 {level === 'Critical' && <AlertCircle className="w-5 h-5 mx-auto mb-1" />}
                 <div className="text-sm">{t(level.toLowerCase() as any)}</div>

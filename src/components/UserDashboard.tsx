@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User, Phone, MapPin, Droplets, Trash2, AlertCircle, Check, LogOut, Edit, Plus, Copy } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
-import { storage } from '../utils/storage';
+import { useDeleteDonor } from '../hooks/useDonors';
+import { useRequestsByCode, useUpdateRequestStatus, useDeleteRequest } from '../hooks/useRequests';
 import { getTranslation } from '../utils/translations';
 import { formatDateTime } from '../utils/helpers';
-import { RequestStatus, BloodRequest } from '../types';
+import { RequestStatus } from '../types';
 import LanguageToggle from './LanguageToggle';
 
 interface UserDashboardProps {
@@ -17,23 +18,21 @@ export default function UserDashboard({ onEditProfile, onCreateNewRequest }: Use
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
-  const [userRequests, setUserRequests] = useState<BloodRequest[]>([]);
   const t = (key: Parameters<typeof getTranslation>[1]) => getTranslation(language, key);
 
-  useEffect(() => {
-    if (currentUser && currentUser.type === 'request') {
-      const requests = storage.getRequestsByCode(currentUser.data.accessCode);
-      setUserRequests(requests);
-    }
-  }, [currentUser]);
+  const deleteDonorMutation = useDeleteDonor();
+  const updateRequestStatusMutation = useUpdateRequestStatus();
+  const deleteRequestMutation = useDeleteRequest();
+
+  const { data: userRequests = [] } = useRequestsByCode(
+    currentUser?.type === 'request' ? currentUser.data.accessCode : undefined
+  );
 
   if (!currentUser) return null;
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (currentUser.type === 'donor') {
-      storage.deleteDonor(currentUser.data.accessCode);
-    } else {
-      storage.deleteRequest(currentUser.data.accessCode);
+      await deleteDonorMutation.mutateAsync(currentUser.data.accessCode);
     }
     setDeleted(true);
     setTimeout(() => {
@@ -41,20 +40,13 @@ export default function UserDashboard({ onEditProfile, onCreateNewRequest }: Use
     }, 1500);
   };
 
-  const handleStatusUpdate = (requestId: string, status: RequestStatus) => {
-    if (currentUser.type === 'request') {
-      storage.updateRequestStatus(requestId, status);
-      const updatedRequests = storage.getRequestsByCode(currentUser.data.accessCode);
-      setUserRequests(updatedRequests);
-    }
+  const handleStatusUpdate = async (requestId: string, status: RequestStatus) => {
+    await updateRequestStatusMutation.mutateAsync({ id: requestId, status });
   };
 
-  const handleDeleteRequest = (requestId: string) => {
-    storage.deleteRequestById(requestId);
-    const updatedRequests = storage.getRequestsByCode(currentUser.data.accessCode);
-    setUserRequests(updatedRequests);
-
-    if (updatedRequests.length === 0) {
+  const handleDeleteRequest = async (requestId: string) => {
+    await deleteRequestMutation.mutateAsync(requestId);
+    if (userRequests.length <= 1) {
       logout();
     }
   };
@@ -173,22 +165,20 @@ export default function UserDashboard({ onEditProfile, onCreateNewRequest }: Use
                     </div>
                     <div>
                       <div className="text-sm text-gray-500">{t('bloodGroupNeeded')}</div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-bold text-white inline-block mt-1 ${
-                        request.status === 'active' ? 'bg-green-500' :
-                        request.status === 'fulfilled' ? 'bg-blue-500' :
-                        request.status === 'deceased' ? 'bg-gray-500' :
-                        'bg-orange-500'
-                      }`}>
+                      <div className={`px-3 py-1 rounded-full text-sm font-bold text-white inline-block mt-1 ${request.status === 'active' ? 'bg-green-500' :
+                          request.status === 'fulfilled' ? 'bg-blue-500' :
+                            request.status === 'deceased' ? 'bg-gray-500' :
+                              'bg-orange-500'
+                        }`}>
                         {t(request.status)}
                       </div>
                     </div>
                   </div>
 
-                  <div className={`px-4 py-2 rounded-full font-bold text-sm text-white ${
-                    request.urgency === 'Critical' ? 'bg-red-700' :
-                    request.urgency === 'Urgent' ? 'bg-orange-500' :
-                    'bg-blue-500'
-                  }`}>
+                  <div className={`px-4 py-2 rounded-full font-bold text-sm text-white ${request.urgency === 'Critical' ? 'bg-red-700' :
+                      request.urgency === 'Urgent' ? 'bg-orange-500' :
+                        'bg-blue-500'
+                    }`}>
                     {request.urgency === 'Critical' && <AlertCircle className="w-4 h-4 inline mr-1" />}
                     {t(request.urgency.toLowerCase() as any)}
                   </div>

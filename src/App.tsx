@@ -10,8 +10,12 @@ import DonorList from './components/DonorList';
 import RequestForm from './components/RequestForm';
 import RequestList from './components/RequestList';
 import BottomNav from './components/BottomNav';
+import LegalPages from './components/LegalPages';
 
-type Screen = 'landing' | 'accessCodeLogin' | 'dashboard' | 'donorForm' | 'donorEdit' | 'donorList' | 'requestForm' | 'requestList';
+
+
+type Screen = 'landing' | 'accessCodeLogin' | 'dashboard' | 'donorForm' | 'donorEdit' | 'donorList' | 'requestForm' | 'requestList' | 'privacy' | 'terms';
+
 type NavItem = 'home' | 'donors' | 'requests';
 
 function App() {
@@ -61,6 +65,15 @@ function App() {
   const handleBackToLanding = () => {
     setCurrentScreen('landing');
   };
+
+  const handleShowPrivacy = () => {
+    setCurrentScreen('privacy');
+  };
+
+  const handleShowTerms = () => {
+    setCurrentScreen('terms');
+  };
+
 
   const handleDonorSuccess = () => {
     setCurrentScreen('donorList');
@@ -143,10 +156,12 @@ function App() {
     return null;
   };
 
-  const showBottomNav = currentScreen !== 'landing' && currentScreen !== 'accessCodeLogin' && currentScreen !== 'donorForm' && currentScreen !== 'donorEdit' && currentScreen !== 'requestForm';
+  const showBottomNav = currentScreen !== 'landing' && currentScreen !== 'accessCodeLogin' && currentScreen !== 'donorForm' && currentScreen !== 'donorEdit' && currentScreen !== 'requestForm' && currentScreen !== 'privacy' && currentScreen !== 'terms';
+
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F8F9FA]">
+
       {currentScreen === 'landing' && (
         <LandingScreen
           onSelectDonor={handleDonorSelect}
@@ -154,8 +169,11 @@ function App() {
           onLoginWithCode={handleLoginWithCode}
           onViewDonors={() => handleNavigation('donors')}
           onViewRequests={() => handleNavigation('requests')}
+          onShowPrivacy={handleShowPrivacy}
+          onShowTerms={handleShowTerms}
         />
       )}
+
 
       {currentScreen === 'accessCodeLogin' && (
         <AccessCodeLogin onBack={handleBackToLanding} />
@@ -193,6 +211,15 @@ function App() {
           onTargetScrolled={clearTarget}
         />
       )}
+
+      {currentScreen === 'privacy' && (
+        <LegalPages type="privacy" onBack={handleBackToLanding} />
+      )}
+
+      {currentScreen === 'terms' && (
+        <LegalPages type="terms" onBack={handleBackToLanding} />
+      )}
+
 
       {showBottomNav && (
         <BottomNav active={getActiveNavItem()} onNavigate={handleNavigation} />

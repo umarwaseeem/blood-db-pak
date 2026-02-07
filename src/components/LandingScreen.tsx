@@ -8,14 +8,24 @@ interface LandingScreenProps {
   onLoginWithCode: () => void;
   onViewDonors: () => void;
   onViewRequests: () => void;
+  onShowPrivacy: () => void;
+  onShowTerms: () => void;
 }
 
-export default function LandingScreen({ onSelectDonor, onSelectRequest, onLoginWithCode, onViewDonors, onViewRequests }: LandingScreenProps) {
+export default function LandingScreen({
+  onSelectDonor,
+  onSelectRequest,
+  onLoginWithCode,
+  onViewDonors,
+  onViewRequests,
+  onShowPrivacy,
+  onShowTerms
+}: LandingScreenProps) {
   const { language, toggleLanguage } = useApp();
   const t = (key: Parameters<typeof getTranslation>[1]) => getTranslation(language, key);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-b from-red-50 to-[#F8F9FA] flex flex-col items-center justify-center p-6 pb-12">
       <div className="w-full max-w-md space-y-8">
         <div className="absolute top-6 right-6">
           <button
@@ -29,7 +39,7 @@ export default function LandingScreen({ onSelectDonor, onSelectRequest, onLoginW
           </button>
         </div>
 
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-3 pt-8">
           <div className="flex justify-center">
             <div className="bg-red-600 p-4 rounded-full">
               <Droplets className="w-12 h-12 text-white" />
@@ -97,7 +107,15 @@ export default function LandingScreen({ onSelectDonor, onSelectRequest, onLoginW
             </button>
           </div>
         </div>
+
+        {/* Footer Links */}
+        <div className="pt-8 pb-4 flex justify-center space-x-4 text-sm text-gray-500">
+          <button onClick={onShowPrivacy} className="hover:text-red-600 hover:underline">Privacy Policy</button>
+          <span>•</span>
+          <button onClick={onShowTerms} className="hover:text-red-600 hover:underline">Terms of Service</button>
+        </div>
       </div>
     </div>
   );
 }
+

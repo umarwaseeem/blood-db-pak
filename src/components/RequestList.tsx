@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { Phone, MapPin, Droplets, AlertCircle, Clock, User, Loader2, Share2, Check, MessageCircle, AlertTriangle } from 'lucide-react';
+import { Phone, MapPin, Droplets, AlertCircle, Clock, User, Share2, Check, MessageCircle, AlertTriangle } from 'lucide-react';
+
 import { UrgencyLevel } from '../types';
 import { useRequests } from '../hooks/useRequests';
 import { useApp } from '../contexts/AppContext';
@@ -7,6 +8,8 @@ import { getTranslation } from '../utils/translations';
 import { getTimeAgo, formatDateTime } from '../utils/helpers';
 import { generateShareableLink, copyToClipboard, scrollToElement } from '../utils/shareLink';
 import LanguageToggle from './LanguageToggle';
+import { RequestListSkeleton } from './RequestListSkeleton';
+
 
 const urgencyColors: Record<UrgencyLevel, string> = {
   Normal: 'bg-blue-500',
@@ -137,13 +140,9 @@ export default function RequestList({ targetId, onTargetScrolled }: RequestListP
         )}
 
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="bg-white rounded-2xl p-8 shadow-sm">
-              <Loader2 className="w-16 h-16 text-red-500 mx-auto mb-4 animate-spin" />
-              <p className="text-gray-500 text-lg">Loading requests...</p>
-            </div>
-          </div>
+          <RequestListSkeleton />
         ) : error ? (
+
           <div className="text-center py-12">
             <div className="bg-white rounded-2xl p-8 shadow-sm">
               <Droplets className="w-16 h-16 text-red-300 mx-auto mb-4" />

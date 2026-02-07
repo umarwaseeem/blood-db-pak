@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Phone, MapPin, User, Search, Clock, Loader2, Share2, Check, MessageCircle, AlertTriangle } from 'lucide-react';
+import { Phone, MapPin, User, Search, Clock, Share2, Check, MessageCircle, AlertTriangle } from 'lucide-react';
+
 import { BloodGroup } from '../types';
 import { useDonors } from '../hooks/useDonors';
 import { useApp } from '../contexts/AppContext';
@@ -7,6 +8,8 @@ import { getTranslation } from '../utils/translations';
 import { formatDateTime } from '../utils/helpers';
 import { generateShareableLink, copyToClipboard, scrollToElement } from '../utils/shareLink';
 import LanguageToggle from './LanguageToggle';
+import { DonorListSkeleton } from './DonorListSkeleton';
+
 
 const bloodGroups: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -163,13 +166,9 @@ export default function DonorList({ targetId, onTargetScrolled }: DonorListProps
         )}
 
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="bg-white rounded-2xl p-8 shadow-sm">
-              <Loader2 className="w-16 h-16 text-red-500 mx-auto mb-4 animate-spin" />
-              <p className="text-gray-500 text-lg">Loading donors...</p>
-            </div>
-          </div>
+          <DonorListSkeleton />
         ) : error ? (
+
           <div className="text-center py-12">
             <div className="bg-white rounded-2xl p-8 shadow-sm">
               <User className="w-16 h-16 text-red-300 mx-auto mb-4" />

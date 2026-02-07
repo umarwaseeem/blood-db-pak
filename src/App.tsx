@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useApp } from './contexts/AppContext';
 import { useDeepLink } from './hooks/useDeepLink';
 import LandingScreen from './components/LandingScreen';
@@ -11,215 +12,168 @@ import RequestForm from './components/RequestForm';
 import RequestList from './components/RequestList';
 import BottomNav from './components/BottomNav';
 import LegalPages from './components/LegalPages';
+import EligibilityQuiz from './components/EligibilityQuiz';
+import BloodDonationGuide from './components/BloodDonationGuide';
+import TestimonialsPage from './components/TestimonialsPage';
 
 
-
-type Screen = 'landing' | 'accessCodeLogin' | 'dashboard' | 'donorForm' | 'donorEdit' | 'donorList' | 'requestForm' | 'requestList' | 'privacy' | 'terms';
 
 type NavItem = 'home' | 'donors' | 'requests';
 
 function App() {
   const { currentUser, setCurrentUser } = useApp();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
   const { targetType, targetId, isDeepLink, clearTarget } = useDeepLink();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Handle deep link navigation on mount
   useEffect(() => {
     if (isDeepLink && targetType && targetId) {
       if (targetType === 'donor') {
-        setCurrentScreen('donorList');
+        navigate('/donors');
       } else if (targetType === 'request') {
-        setCurrentScreen('requestList');
+        navigate('/requests');
       }
     }
-  }, [isDeepLink, targetType, targetId]);
-
-  useEffect(() => {
-    if (currentUser) {
-      // Don't redirect to dashboard if we're viewing a deep link
-      if (!isDeepLink) {
-        setCurrentScreen('dashboard');
-      }
-    } else {
-      if (currentScreen === 'dashboard' || currentScreen === 'donorEdit') {
-        // Don't redirect to landing if we're viewing a deep link
-        if (!isDeepLink) {
-          setCurrentScreen('landing');
-        }
-      }
-    }
-  }, [currentUser, isDeepLink]);
-
-  const handleDonorSelect = () => {
-    setCurrentScreen('donorForm');
-  };
-
-  const handleRequestSelect = () => {
-    setCurrentScreen('requestForm');
-  };
+  }, [isDeepLink, targetType, targetId, navigate]);
 
   const handleLoginWithCode = () => {
-    setCurrentScreen('accessCodeLogin');
+    navigate('/login');
   };
 
   const handleBackToLanding = () => {
-    setCurrentScreen('landing');
-  };
-
-  const handleShowPrivacy = () => {
-    setCurrentScreen('privacy');
-  };
-
-  const handleShowTerms = () => {
-    setCurrentScreen('terms');
-  };
-
-
-  const handleDonorSuccess = () => {
-    setCurrentScreen('donorList');
-  };
-
-  const handleRequestSuccess = () => {
-    setCurrentScreen('requestList');
-  };
-
-  const handleEditProfile = () => {
-    setCurrentScreen('donorEdit');
-  };
-
-  const handleEditCancel = () => {
-    setCurrentScreen('dashboard');
-  };
-
-  const handleEditSuccess = (donor: any) => {
-    if (currentUser && currentUser.type === 'donor') {
-      setCurrentUser({ type: 'donor', data: donor });
-    }
-    setCurrentScreen('dashboard');
-  };
-
-  const handleCreateNewRequest = () => {
-    setCurrentScreen('requestForm');
-  };
-
-  const handleRequestFormBack = () => {
-    if (currentUser) {
-      setCurrentScreen('dashboard');
-    } else {
-      setCurrentScreen('landing');
-    }
+    navigate('/');
   };
 
   const handleNavigation = (item: NavItem) => {
-    if (currentUser) {
-      if (item === 'home') {
-        setCurrentScreen('dashboard');
-      } else if (item === 'donors') {
-        setCurrentScreen('donorList');
-      } else if (item === 'requests') {
-        setCurrentScreen('requestList');
-      }
-    } else {
-      switch (item) {
-        case 'home':
-          setCurrentScreen('landing');
-          break;
-        case 'donors':
-          setCurrentScreen('donorList');
-          break;
-        case 'requests':
-          setCurrentScreen('requestList');
-          break;
-      }
+    switch (item) {
+      case 'home':
+        navigate(currentUser ? '/dashboard' : '/');
+        break;
+      case 'donors':
+        navigate('/donors');
+        break;
+      case 'requests':
+        navigate('/requests');
+        break;
     }
   };
 
   const getActiveNavItem = (): NavItem => {
-    if (currentScreen === 'dashboard') return 'home';
-    if (currentScreen === 'donorList' || currentScreen === 'donorForm' || currentScreen === 'donorEdit') return 'donors';
-    if (currentScreen === 'requestList' || currentScreen === 'requestForm') return 'requests';
+    const path = location.pathname;
+    if (path === '/dashboard' || path === '/') return 'home';
+    if (path.startsWith('/donors') || path.startsWith('/donor')) return 'donors';
+    if (path.startsWith('/requests') || path.startsWith('/request')) return 'requests';
     return 'home';
   };
 
-  // Get target ID for the current screen (only if it matches the deep link type)
-  const getDonorTargetId = () => {
-    if (isDeepLink && targetType === 'donor' && currentScreen === 'donorList') {
-      return targetId;
-    }
-    return null;
-  };
+  const showBottomNav = !['/', '/login', '/donor/register', '/donor/edit', '/request/create', '/privacy', '/terms', '/quiz', '/guide', '/stories'].includes(location.pathname);
 
-  const getRequestTargetId = () => {
-    if (isDeepLink && targetType === 'request' && currentScreen === 'requestList') {
-      return targetId;
-    }
-    return null;
-  };
-
-  const showBottomNav = currentScreen !== 'landing' && currentScreen !== 'accessCodeLogin' && currentScreen !== 'donorForm' && currentScreen !== 'donorEdit' && currentScreen !== 'requestForm' && currentScreen !== 'privacy' && currentScreen !== 'terms';
 
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
+      <Routes>
+        <Route path="/" element={
+          currentUser ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <LandingScreen
+              onSelectDonor={() => navigate('/donor/register')}
+              onSelectRequest={() => navigate('/request/create')}
+              onLoginWithCode={handleLoginWithCode}
+              onViewDonors={() => navigate('/donors')}
+              onViewRequests={() => navigate('/requests')}
+              onShowPrivacy={() => navigate('/privacy')}
+              onShowTerms={() => navigate('/terms')}
+              onShowQuiz={() => navigate('/quiz')}
+              onShowGuide={() => navigate('/guide')}
+              onShowStories={() => navigate('/stories')}
+            />
 
-      {currentScreen === 'landing' && (
-        <LandingScreen
-          onSelectDonor={handleDonorSelect}
-          onSelectRequest={handleRequestSelect}
-          onLoginWithCode={handleLoginWithCode}
-          onViewDonors={() => handleNavigation('donors')}
-          onViewRequests={() => handleNavigation('requests')}
-          onShowPrivacy={handleShowPrivacy}
-          onShowTerms={handleShowTerms}
-        />
-      )}
+
+          )
+        } />
+
+        <Route path="/login" element={
+          <AccessCodeLogin onBack={handleBackToLanding} />
+        } />
+
+        <Route path="/dashboard" element={
+          currentUser ? (
+            <UserDashboard
+              onEditProfile={() => navigate('/donor/edit')}
+              onCreateNewRequest={() => navigate('/request/create')}
+            />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } />
+
+        <Route path="/donor/register" element={
+          <DonorForm onSuccess={() => navigate('/donors')} onBack={handleBackToLanding} />
+        } />
+
+        <Route path="/donor/edit" element={
+          currentUser && currentUser.type === 'donor' ? (
+            <DonorEditForm
+              donor={currentUser.data}
+              onSuccess={(donor: any) => {
+                setCurrentUser({ type: 'donor', data: donor });
+                navigate('/dashboard');
+              }}
+              onCancel={() => navigate('/dashboard')}
+            />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } />
+
+        <Route path="/donors" element={
+          <DonorList
+            targetId={isDeepLink && targetType === 'donor' ? targetId : null}
+            onTargetScrolled={clearTarget}
+          />
+        } />
+
+        <Route path="/request/create" element={
+          <RequestForm
+            onSuccess={() => navigate('/requests')}
+            onBack={() => navigate(currentUser ? '/dashboard' : '/')}
+          />
+        } />
+
+        <Route path="/requests" element={
+          <RequestList
+            targetId={isDeepLink && targetType === 'request' ? targetId : null}
+            onTargetScrolled={clearTarget}
+          />
+        } />
+
+        <Route path="/privacy" element={
+          <LegalPages type="privacy" onBack={handleBackToLanding} />
+        } />
+
+        <Route path="/terms" element={
+          <LegalPages type="terms" onBack={handleBackToLanding} />
+        } />
+
+        <Route path="/quiz" element={
+          <EligibilityQuiz onBack={handleBackToLanding} />
+        } />
+
+        <Route path="/guide" element={
+          <BloodDonationGuide onBack={handleBackToLanding} />
+        } />
+
+        <Route path="/stories" element={
+          <TestimonialsPage onBack={handleBackToLanding} />
+        } />
 
 
-      {currentScreen === 'accessCodeLogin' && (
-        <AccessCodeLogin onBack={handleBackToLanding} />
-      )}
-
-      {currentScreen === 'dashboard' && (
-        <UserDashboard
-          onEditProfile={handleEditProfile}
-          onCreateNewRequest={handleCreateNewRequest}
-        />
-      )}
-
-      {currentScreen === 'donorForm' && <DonorForm onSuccess={handleDonorSuccess} onBack={handleBackToLanding} />}
-
-      {currentScreen === 'donorEdit' && currentUser && currentUser.type === 'donor' && (
-        <DonorEditForm
-          donor={currentUser.data}
-          onSuccess={handleEditSuccess}
-          onCancel={handleEditCancel}
-        />
-      )}
-
-      {currentScreen === 'donorList' && (
-        <DonorList
-          targetId={getDonorTargetId()}
-          onTargetScrolled={clearTarget}
-        />
-      )}
-
-      {currentScreen === 'requestForm' && <RequestForm onSuccess={handleRequestSuccess} onBack={handleRequestFormBack} />}
-
-      {currentScreen === 'requestList' && (
-        <RequestList
-          targetId={getRequestTargetId()}
-          onTargetScrolled={clearTarget}
-        />
-      )}
-
-      {currentScreen === 'privacy' && (
-        <LegalPages type="privacy" onBack={handleBackToLanding} />
-      )}
-
-      {currentScreen === 'terms' && (
-        <LegalPages type="terms" onBack={handleBackToLanding} />
-      )}
-
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
 
       {showBottomNav && (
         <BottomNav active={getActiveNavItem()} onNavigate={handleNavigation} />

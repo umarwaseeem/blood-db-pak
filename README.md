@@ -1,5 +1,7 @@
 # 🩸 Blood Donors Pakistan | بلڈ ڈونرز پاکستان
 
+![Blood Donors Pakistan](public/main_image.png)
+
 A mobile-first web application connecting blood donors with people in urgent need across Pakistan.
 
 ## Features

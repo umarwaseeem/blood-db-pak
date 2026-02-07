@@ -1,0 +1,37 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.blood_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  access_code text NOT NULL CHECK (length(access_code) >= 6),
+  blood_group text NOT NULL CHECK (blood_group = ANY (ARRAY['A+'::text, 'A-'::text, 'B+'::text, 'B-'::text, 'AB+'::text, 'AB-'::text, 'O+'::text, 'O-'::text])),
+  patient_name text,
+  contact_number text NOT NULL CHECK (length(TRIM(BOTH FROM contact_number)) > 0),
+  location text NOT NULL CHECK (length(TRIM(BOTH FROM location)) > 0),
+  urgency text NOT NULL CHECK (urgency = ANY (ARRAY['Normal'::text, 'Urgent'::text, 'Critical'::text])),
+  notes text,
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'fulfilled'::text, 'notNeeded'::text, 'deceased'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT blood_requests_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.donors (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  access_code text NOT NULL UNIQUE CHECK (length(access_code) >= 6),
+  profile_picture text,
+  full_name text NOT NULL CHECK (length(TRIM(BOTH FROM full_name)) > 0),
+  phone_number text NOT NULL CHECK (length(TRIM(BOTH FROM phone_number)) > 0),
+  blood_group text NOT NULL CHECK (blood_group = ANY (ARRAY['A+'::text, 'A-'::text, 'B+'::text, 'B-'::text, 'AB+'::text, 'AB-'::text, 'O+'::text, 'O-'::text])),
+  city text NOT NULL CHECK (length(TRIM(BOTH FROM city)) > 0),
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT donors_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.testimonials (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  full_name text NOT NULL,
+  message text NOT NULL,
+  image_url text,
+  is_approved boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT testimonials_pkey PRIMARY KEY (id)
+);
